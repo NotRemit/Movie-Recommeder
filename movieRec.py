@@ -45,7 +45,7 @@ def recommendedMoviesList(title):
         suggested_movies.append(movie_name)
     return suggested_movies
 
-API_KEY = ""
+API_KEY = st.secrets["OMDB_API_KEY"]
 
 def get_movie_data(title, year=None):
     base_url = "http://www.omdbapi.com/"
