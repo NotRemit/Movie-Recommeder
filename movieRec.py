@@ -4,6 +4,7 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 import requests
 import kagglehub
+from rapidfuzz import process
 import random
 
 # -------------------
@@ -81,6 +82,10 @@ def split_title_year(movie):
         year_part = None
     return title_part, year_part
 
+def fuzzy_match_movie(query, choices, limit=5, score_cutoff=60):
+    matches = process.extract(query, choices, limit=limit, score_cutoff=score_cutoff)
+    return matches
+
 # --- Calculate Top 10 Rated Movies ---
 average_ratings = movies_ids.mean(axis=1) 
 counts = (movies_ids != 0).sum(axis=1)
@@ -120,16 +125,20 @@ search_movie = st.text_input("Search for a movie", "")
 
 if search_movie:
 
-    if search_movie in list(movies_name['title']):
-        st.subheader(f"Selected Movie: {search_movie}")
+    titles_list = movies_name['title'].tolist()
+    matches = fuzzy_match_movie(search_movie, titles_list)
 
-        t, y = split_title_year(search_movie)
+    if matches:
+        options = [m[0] for m in matches]
+        matched_title = st.selectbox("Choose the closest match:", options)
+
+    
+        t, y = split_title_year(matched_title)
         main_poster = get_poster_url(t, y)
         st.image(main_poster, width=200)
-        
 
         st.write("### Recommended Movies:")
-        showMovies = recommendedMoviesList(search_movie)
+        showMovies = recommendedMoviesList(matched_title)
         cols = st.columns(5)
         for i, movie in enumerate(showMovies):
             with cols[i]:
@@ -138,7 +147,7 @@ if search_movie:
                 st.image(poster_url, width=150)
                 st.caption(movie)
     else:
-        st.warning("Movie not found in database. Try another one.")
+        st.warning("No similar movie found.")
 else:
     st.write("### 🏆 Top 10 Rated Movies")
     
